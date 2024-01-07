@@ -11,9 +11,13 @@ MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 
 const int sensorPin = A1;
 const int ledPin = 13;
+const unsigned long debounceDelay = 5; // Debounce delay in milliseconds
+const unsigned long noteOffDelay = 100; // Note-off delay in milliseconds
 
 bool noteOn = false; // Flag to track if a note is currently on
 unsigned long noteStartTime; // Time when the note was triggered
+unsigned long lastDebounceTime = 0; // Last time the sensor value was stable
+int lastSensorValue = 0; // Last stable sensor value
 
 void setup()
 {
@@ -48,34 +52,44 @@ void loop()
   // Read the sensor value
   int sensorValue = analogRead(sensorPin);
 
-  // Check if the sensor value is over 1000
-  if (sensorValue > 1000)
+  // Check for debounce
+  if (millis() - lastDebounceTime >= debounceDelay)
   {
-    // Calculate velocity based on the sensor reading (0 to 127)
-    int velocity = map(sensorValue, 1001, 1023, 1, 127);
+    // Update the last debounce time
+    lastDebounceTime = millis();
 
-    // If a note is not already on, trigger a new note
-    if (!noteOn)
+    // Check if the sensor value is stable and above the threshold
+    if (sensorValue > 1000 && sensorValue != lastSensorValue)
     {
-      // Send Note On for MIDI note 38 (snare) with velocity on channel 1.
-      MIDI.sendNoteOn(38, velocity, 1);
+      // Calculate velocity based on the sensor reading (0 to 127)
+      int velocity = map(sensorValue, 1001, 1023, 1, 127);
 
-      // Set noteOn flag and record the start time
-      noteOn = true;
-      noteStartTime = millis();
+      // If a note is not already on, trigger a new note
+      if (!noteOn)
+      {
+        // Send Note On for MIDI note 38 (snare) with velocity on channel 1.
+        MIDI.sendNoteOn(38, velocity, 1);
+
+        // Set noteOn flag and record the start time
+        noteOn = true;
+        noteStartTime = millis();
+      }
     }
-  }
-  else
-  {
-    // If a note was on and the duration is greater than 100 ms, turn it off
-    if (noteOn && (millis() - noteStartTime > 100))
+    else if (sensorValue <= 1000 && noteOn)
     {
-      // Send Note Off for MIDI note 38 (snare) on channel 1.
-      MIDI.sendNoteOff(38, 0, 1);
+      // If a note was on and the duration is greater than 100 ms, turn it off
+      if (millis() - noteStartTime > noteOffDelay)
+      {
+        // Send Note Off for MIDI note 38 (snare) on channel 1.
+        MIDI.sendNoteOff(38, 0, 1);
 
-      // Reset noteOn flag
-      noteOn = false;
+        // Reset noteOn flag
+        noteOn = false;
+      }
     }
+
+    // Update the last stable sensor value
+    lastSensorValue = sensorValue;
   }
 
   // read any new MIDI messages
