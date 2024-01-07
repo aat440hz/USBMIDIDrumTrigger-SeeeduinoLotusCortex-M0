@@ -11,7 +11,7 @@ MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 
 const int sensorPin = A1;
 const int ledPin = 13;
-const unsigned long debounceDelay = 5; // Debounce delay in milliseconds
+const unsigned long debounceDelay = 1; // Debounce delay in milliseconds
 const unsigned long noteOffDelay = 100; // Note-off delay in milliseconds
 
 bool noteOn = false; // Flag to track if a note is currently on
