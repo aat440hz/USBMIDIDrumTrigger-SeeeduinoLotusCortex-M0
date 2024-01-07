@@ -12,6 +12,9 @@ MIDI_CREATE_INSTANCE(Adafruit_USBD_MIDI, usb_midi, MIDI);
 const int sensorPin = A1;
 const int ledPin = 13;
 
+bool noteOn = false; // Flag to track if a note is currently on
+unsigned long noteStartTime; // Time when the note was triggered
+
 void setup()
 {
 #if defined(ARDUINO_ARCH_MBED) && defined(ARDUINO_ARCH_RP2040)
@@ -51,9 +54,28 @@ void loop()
     // Calculate velocity based on the sensor reading (0 to 127)
     int velocity = map(sensorValue, 1001, 1023, 1, 127);
 
-    // Send Note On for MIDI note 38 (snare) with velocity on channel 1.
-    MIDI.sendNoteOn(38, velocity, 1);
-    delay(100); // Delay to prevent rapid triggering (adjust as needed)
+    // If a note is not already on, trigger a new note
+    if (!noteOn)
+    {
+      // Send Note On for MIDI note 38 (snare) with velocity on channel 1.
+      MIDI.sendNoteOn(38, velocity, 1);
+
+      // Set noteOn flag and record the start time
+      noteOn = true;
+      noteStartTime = millis();
+    }
+  }
+  else
+  {
+    // If a note was on and the duration is greater than 100 ms, turn it off
+    if (noteOn && (millis() - noteStartTime > 100))
+    {
+      // Send Note Off for MIDI note 38 (snare) on channel 1.
+      MIDI.sendNoteOff(38, 0, 1);
+
+      // Reset noteOn flag
+      noteOn = false;
+    }
   }
 
   // read any new MIDI messages
