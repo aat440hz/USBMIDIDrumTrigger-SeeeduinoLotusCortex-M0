@@ -17,7 +17,6 @@ const unsigned long noteOffDelay = 100; // Note-off delay in milliseconds
 bool noteOn = false; // Flag to track if a note is currently on
 unsigned long noteStartTime; // Time when the note was triggered
 unsigned long lastDebounceTime = 0; // Last time the sensor value was stable
-int lastSensorValue = 0; // Last stable sensor value
 
 void setup()
 {
@@ -58,8 +57,8 @@ void loop()
     // Update the last debounce time
     lastDebounceTime = millis();
 
-    // Check if the sensor value is stable and above the threshold
-    if (sensorValue > 1000 && sensorValue != lastSensorValue)
+    // Check if the sensor value is above the threshold
+    if (sensorValue > 1000)
     {
       // Calculate velocity based on the sensor reading (0 to 127)
       int velocity = map(sensorValue, 1001, 1023, 1, 127);
@@ -87,9 +86,6 @@ void loop()
         noteOn = false;
       }
     }
-
-    // Update the last stable sensor value
-    lastSensorValue = sensorValue;
   }
 
   // read any new MIDI messages
